@@ -240,6 +240,15 @@ in model calls.
 
 ---
 
+## Deeper reading
+
+[`TECHNICAL_BREAKDOWN.md`](TECHNICAL_BREAKDOWN.md) — the full engineering
+account: architecture and trust boundary, the mandate chain, the commercial
+model and its arithmetic, every data structure with its complexity class and
+why it was chosen, concurrency, the failure-mode matrix, scalability limits by
+order of magnitude, security posture, what was verified and how, the bugs found
+by testing, and the gaps stated plainly.
+
 ## Author
 
 Built by **Dev Chalana** — <https://github.com/dev591>
