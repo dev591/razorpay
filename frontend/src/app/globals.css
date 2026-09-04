@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #132644;
+
+  /* ── Razorpay brand, sampled from the live razorpay.com stylesheet ──────
+     Primary #305EFF, ink #132644, surface #F0F4F6, hairline #DFE3E9.
+     The site is white-ground and light: blue is an accent, never the field. */
+  --color-rzp-700: #1e3ba8;
+  --color-rzp-600: #2950da;
+  --color-rzp-500: #305eff;
+  --color-rzp-400: #4d7fff;
+  --color-rzp-300: #8fb0ff;
+  --color-rzp-200: #d0e0ff;
+  --color-rzp-100: #e8efff;
+  --color-rzp-50: #f4f7ff;
+
+  --color-ink: #132644;
+  --color-ink-600: #192839;
+  --color-slate-ink: #40566d;
+  --color-muted: #5d6d86;
+  --color-line: #dfe3e9;
+  --color-surface: #f0f4f6;
+  --color-paper: #ffffff;
+  --color-mist: #f5f7fb;
+
+  /* Negotiation state accents — one hue per protocol outcome, used
+     consistently everywhere a round, offer or mandate is rendered. */
+  --color-settle: #12b76a;
+  --color-counter: #f79009;
+  --color-walk: #ed2939;
+  --color-lock: #7a5af8;
+
+  /* Legacy aliases retuned to brand so scenes built against the old
+     navy/accent scale pick up Razorpay colour without being rewritten. */
+  --color-navy-950: #050a1f;
+  --color-navy-900: #0a1436;
+  --color-navy-800: #132248;
+  --color-navy-700: #1c2f5c;
+  --color-accent-500: #305eff;
+  --color-accent-400: #4d7fff;
+  --color-accent-300: #8fb0ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+
+  --color-rzp-700: var(--color-rzp-700);
+  --color-rzp-600: var(--color-rzp-600);
+  --color-rzp-500: var(--color-rzp-500);
+  --color-rzp-400: var(--color-rzp-400);
+  --color-rzp-300: var(--color-rzp-300);
+  --color-rzp-200: var(--color-rzp-200);
+  --color-rzp-100: var(--color-rzp-100);
+  --color-rzp-50: var(--color-rzp-50);
+
+  --color-ink: var(--color-ink);
+  --color-ink-600: var(--color-ink-600);
+  --color-slate-ink: var(--color-slate-ink);
+  --color-muted: var(--color-muted);
+  --color-line: var(--color-line);
+  --color-surface: var(--color-surface);
+  --color-paper: var(--color-paper);
+  --color-mist: var(--color-mist);
+
+  --color-settle: var(--color-settle);
+  --color-counter: var(--color-counter);
+  --color-walk: var(--color-walk);
+  --color-lock: var(--color-lock);
+
+  --color-navy-950: var(--color-navy-950);
+  --color-navy-900: var(--color-navy-900);
+  --color-navy-800: var(--color-navy-800);
+  --color-navy-700: var(--color-navy-700);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-400: var(--color-accent-400);
+  --color-accent-300: var(--color-accent-300);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Display face carries the headline voice; body copy stays on Geist. */
+.font-display {
+  font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ── Hero primitives ──────────────────────────────────────────────────── */
+
+.text-brand-gradient {
+  background-image: linear-gradient(
+    100deg,
+    #2950da 0%,
+    #305eff 32%,
+    #4d7fff 58%,
+    #7a5af8 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Frosted card that still reads as "product UI", not decoration. */
+.panel {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border: 1px solid rgba(223, 227, 233, 0.9);
+  box-shadow:
+    0 1px 2px rgba(19, 38, 68, 0.04),
+    0 12px 32px -12px rgba(19, 38, 68, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.panel-glow {
+  box-shadow:
+    0 1px 2px rgba(19, 38, 68, 0.04),
+    0 18px 48px -14px rgba(48, 94, 255, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Blueprint grid that dissolves toward the edges — depth cue behind the
+   hero without a hard boundary where it stops. */
+.grid-fade {
+  background-image:
+    linear-gradient(to right, rgba(48, 94, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(48, 94, 255, 0.09) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 75% 60% at 50% 45%,
+    #000 30%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    ellipse 75% 60% at 50% 45%,
+    #000 30%,
+    transparent 78%
+  );
+}
+
+/* Fine film grain — keeps the large flat gradients from banding. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -160;
+  }
+}
+
+/* Track is rendered twice, so -50% lands on an identical frame and loops
+   without a visible jump. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+}
+
+@keyframes sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.anim-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+.anim-pulse-ring {
+  animation: pulse-ring 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+.anim-dash {
+  animation: dash-flow 2.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-float,
+  .anim-pulse-ring,
+  .anim-dash,
+  .animate-marquee {
+    animation: none;
+  }
+}

@@ -1,0 +1,36 @@
+# ── secrets ────────────────────────────────────────────────────────────
+# backend/.env holds live OpenAI and Razorpay keys. .env.example is the
+# template a clean clone copies, and is the only env file that ships.
+.env
+.env.*
+!.env.example
+
+# ── python ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── runtime data ───────────────────────────────────────────────────────
+# The SQLite store, the session corpus and the audit ledgers are all
+# regenerated on first run. A clean clone starts at zero sessions, which is
+# the honest state: every counter on the site is measured, never seeded.
+backend/data/
+
+# ── node / next ────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── os / editor ────────────────────────────────────────────────────────
+.DS_Store
+*.pem

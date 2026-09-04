@@ -1,0 +1,8 @@
+# Direct dependencies only; pip resolves the rest. Pinned so a clean clone
+# gets the versions this was actually tested against.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+openai==3.6.0
+razorpay==2.0.1
+pydantic==2.13.5
+python-dotenv==1.2.3
