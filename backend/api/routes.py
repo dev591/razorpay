@@ -44,6 +44,9 @@ def list_businesses():
             "name": b["name"],
             "margin_floor_pct": b["margin_floor_pct"],
             "razorpay_linked_account_id": b["razorpay_linked_account_id"],
+            # None for the seeded three; a timestamp for anything registered
+            # at runtime. Lets a client order by recency explicitly.
+            "registered_at": b.get("registered_at"),
             # `price` kept as the merchant's unit cost for backwards
             # compatibility, but `list_price` is now returned alongside it.
             # Returning only cost while /agent/catalog/search returned only

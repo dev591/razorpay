@@ -140,6 +140,9 @@ export type Business = {
   name: string;
   margin_floor_pct: number;
   catalog: BusinessCatalogItem[];
+  /** Unix seconds for a vendor registered at runtime; null for the seeded
+   *  three, which are defined in code and have no registration moment. */
+  registered_at: number | null;
 };
 
 export type MetricsResponse = {

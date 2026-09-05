@@ -2,6 +2,7 @@ import hashlib
 import math
 import re
 import threading
+import time
 from typing import Any
 
 from agents.catalog import CATALOG, MARGIN_FLOOR_PCT
@@ -212,6 +213,10 @@ def register_business(
             "catalog": catalog,
             "margin_floor_pct": float(margin_floor_pct),
             "razorpay_linked_account_id": _linked_account_id(business_id),
+            # Recorded so "most recently registered" is a fact the record
+            # carries, rather than something inferred from list position.
+            # Absent on the seeded three, which are defined in code.
+            "registered_at": time.time(),
         }
 
         # Mutate the existing list/dict in place (never rebind BUSINESSES to a

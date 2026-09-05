@@ -14,6 +14,14 @@ import { rupees } from "@/lib/format";
 
 const IDENTITY_KEY = "mandate.merchant.id";
 
+// The roster grows every time someone registers a vendor, and an unbounded
+// list pushes the actual sign-in decision below the fold.
+const PICKER_LIMIT = 3;
+const CATALOG_PREVIEW = 3;
+// A vendor that has won a lot has a very long page otherwise, and the orders
+// that need acting on are the recent ones.
+const ORDER_LIMIT = 3;
+
 /** Where an order sits from the seller's point of view. */
 function stage(s: Session): "accept" | "awaiting_payment" | "paid" | "done" | "other" {
   if (s.pending_seller_confirmation) return "accept";
@@ -36,6 +44,16 @@ export default function MerchantConsole() {
   const [orders, setOrders] = useState<Session[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [showAllOrders, setShowAllOrders] = useState(false);
+
+  // Newest registration first; the seeded three have no registration moment
+  // and sort to the back, since they are the ones a returning visitor already
+  // knows about.
+  const sorted = [...businesses].sort(
+    (a, b) => (b.registered_at ?? 0) - (a.registered_at ?? 0)
+  );
+  const visible = showAll ? sorted : sorted.slice(0, PICKER_LIMIT);
 
   useEffect(() => {
     listBusinesses().then(setBusinesses).catch(() => {});
@@ -70,6 +88,7 @@ export default function MerchantConsole() {
 
   function signIn(id: string) {
     setOrders(null);
+    setShowAllOrders(false);
     setMe(id);
     try {
       localStorage.setItem(IDENTITY_KEY, id);
@@ -103,6 +122,14 @@ export default function MerchantConsole() {
 
   const meName = businesses.find((b) => b.id === me)?.name ?? me;
 
+  // Orders arrive newest-first. Cap the visible set, but say how many of the
+  // hidden ones are actually waiting on this merchant — collapsing a list is
+  // only safe if it cannot hide work.
+  const visibleOrders = showAllOrders ? (orders ?? []) : (orders ?? []).slice(0, ORDER_LIMIT);
+  const hiddenNeedingAction = (orders ?? [])
+    .slice(ORDER_LIMIT)
+    .filter((s) => stage(s) === "accept" || stage(s) === "paid").length;
+
   if (!me) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-20">
@@ -116,21 +143,83 @@ export default function MerchantConsole() {
           No password — the point is to let you stand on the other side of a deal
           you just negotiated. Pick the vendor whose orders you want to see.
         </p>
-        <div className="mt-7 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
-          {businesses.map((b) => (
+
+        <div className="mt-7 flex items-baseline justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            {showAll ? `All ${sorted.length} vendors` : "Most recent"}
+          </p>
+          {sorted.length > PICKER_LIMIT && (
             <button
-              key={b.id}
-              onClick={() => signIn(b.id)}
-              className="bg-white p-5 text-left transition hover:bg-rzp-50"
+              onClick={() => setShowAll((v) => !v)}
+              className="text-[12.5px] font-medium text-rzp-600 transition hover:text-rzp-500"
             >
-              <p className="font-display text-[15px] font-semibold text-ink">{b.name}</p>
-              <p className="mt-0.5 font-mono text-[11px] text-muted">{b.id}</p>
-              <p className="mt-2 text-[12px] text-slate-ink">
-                {b.catalog.length} SKUs · {b.margin_floor_pct}% floor
-              </p>
+              {showAll
+                ? "Show fewer"
+                : `View all ${sorted.length} →`}
             </button>
-          ))}
+          )}
         </div>
+
+        <div className="mt-2 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
+          {visible.map((b, i) => {
+            // Newest first, so the vendor someone just created on /vendors is
+            // the first thing they see here — that is almost always the one
+            // they came to sign in as.
+            const isNewest = i === 0 && !showAll && b.registered_at !== null;
+            return (
+              <button
+                key={b.id}
+                onClick={() => signIn(b.id)}
+                className={`p-5 text-left transition ${
+                  isNewest ? "bg-rzp-50 hover:bg-rzp-100" : "bg-white hover:bg-rzp-50"
+                }`}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="font-display text-[15px] font-semibold text-ink">
+                    {b.name}
+                  </p>
+                  {isNewest && (
+                    <span className="shrink-0 rounded-full bg-rzp-500 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-white">
+                      Just added
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 font-mono text-[11px] text-muted">{b.id}</p>
+
+                {/* The catalog is what tells you which vendor this is — two
+                    vendors with similar names are told apart by what they
+                    stock and at what price. */}
+                <ul className="mt-2.5 space-y-0.5">
+                  {b.catalog.slice(0, CATALOG_PREVIEW).map((item) => (
+                    <li
+                      key={item.sku}
+                      className="flex justify-between gap-3 text-[12px] text-slate-ink"
+                    >
+                      <span className="truncate">{item.name}</span>
+                      <span className="shrink-0 font-mono tabular-nums text-muted">
+                        {rupees(item.list_price)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-2.5 text-[11.5px] text-muted">
+                  {b.catalog.length} SKU{b.catalog.length === 1 ? "" : "s"}
+                  {b.catalog.length > CATALOG_PREVIEW &&
+                    ` · +${b.catalog.length - CATALOG_PREVIEW} more`}
+                  {" · "}
+                  {b.margin_floor_pct}% floor
+                </p>
+              </button>
+            );
+          })}
+          {/* The grid paints its gaps with the border colour, so an odd count
+              would leave the trailing cell showing as a grey block. */}
+          {visible.length % 2 === 1 && (
+            <div className="hidden bg-white sm:block" aria-hidden />
+          )}
+        </div>
+
         {businesses.length === 0 && (
           <p className="mt-6 text-[13px] text-muted">
             No vendors registered yet — add one on the Vendors page.
@@ -177,21 +266,56 @@ export default function MerchantConsole() {
         </div>
       )}
 
-      <div className="mt-8 space-y-4">
-        {orders?.map((s) => {
+      {orders && orders.length > 0 && (
+        <div className="mt-8 flex items-baseline justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            {showAllOrders
+              ? `All ${orders.length} orders`
+              : `Latest ${Math.min(ORDER_LIMIT, orders.length)} of ${orders.length}`}
+          </p>
+          {orders.length > ORDER_LIMIT && (
+            <button
+              onClick={() => setShowAllOrders((v) => !v)}
+              className="text-[12.5px] font-medium text-rzp-600 transition hover:text-rzp-500"
+            >
+              {showAllOrders
+                ? "Show fewer"
+                : hiddenNeedingAction > 0
+                  ? `View all ${orders.length} · ${hiddenNeedingAction} more need you →`
+                  : `View all ${orders.length} →`}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="mt-3 space-y-4">
+        {visibleOrders.map((s, orderIndex) => {
           const st = stage(s);
           const copy = STAGE_COPY[st];
           const cart = s.final_cart;
           const amount = s.payment_mandate?.amount ?? cart?.total_price ?? null;
+          const isNewest = orderIndex === 0 && !showAllOrders;
           return (
-            <div key={s.id} className="rounded-2xl border border-line bg-white p-5">
+            <div
+              key={s.id}
+              className={`rounded-2xl border bg-white p-5 ${
+                isNewest ? "border-rzp-300 ring-1 ring-rzp-100" : "border-line"
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span
                   className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ${copy.tone}`}
                 >
                   {copy.label}
                 </span>
-                <span className="font-mono text-[10.5px] text-muted">{s.id}</span>
+                <span className="flex items-center gap-2 font-mono text-[10.5px] text-muted">
+                  {isNewest && (
+                    <span className="rounded-full bg-rzp-500 px-2 py-0.5 font-sans text-[9.5px] font-semibold uppercase tracking-wider text-white">
+                      Latest
+                    </span>
+                  )}
+                  {s.id}
+                </span>
               </div>
 
               <p className="mt-3 text-[14.5px] text-ink">{s.intent.goal}</p>
