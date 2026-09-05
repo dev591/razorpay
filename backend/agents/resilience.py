@@ -24,6 +24,8 @@ from typing import Callable, TypeVar
 
 import openai
 
+from config import HAS_OPENAI
+
 T = TypeVar("T")
 
 MAX_ATTEMPTS = 3
@@ -92,8 +94,12 @@ class _ModelOutage:
             remaining = None if self._until is None else round(self._until - time.time(), 1)
         active = remaining is not None and remaining > 0
         return {
-            "model_unreachable": active,
+            # Without a key the model is unreachable for the life of the
+            # process, which the UI needs to show as a standing state rather
+            # than a switch someone can flip back.
+            "model_unreachable": active or not HAS_OPENAI,
             "expires_in_seconds": remaining if active else None,
+            "no_api_key": not HAS_OPENAI,
         }
 
 
@@ -107,6 +113,11 @@ def call_with_retry(fn: Callable[[], T], on_retry: Callable[[int, Exception], No
     `except openai.OpenAIError` handler upstream keeps working unchanged — this
     only changes how many times we try before giving up.
     """
+    # No key configured is not a transient failure, so there is nothing to
+    # retry — go straight to the rule-based path the caller already has.
+    if not HAS_OPENAI:
+        raise openai.APIConnectionError(request=None)  # type: ignore[arg-type]
+
     last: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:

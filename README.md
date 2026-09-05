@@ -32,7 +32,18 @@ npx next dev -p 3000
 
 Open <http://localhost:3000>.
 
-`backend/.env` needs three values:
+### Running without any keys
+
+Both key sets are **optional**. With no `OPENAI_API_KEY` the agents quote from
+the rule-based fallback and every cart is labelled degraded — the gates, the
+margin floors, the shortlist, the hash lock and the audit chain all work
+unchanged. With no Razorpay keys, deals reach the payment gate and hold the
+signed mandate instead of creating an order.
+
+So `cp .env.example .env` and run it: you get the whole system on the degraded
+path, which is the same path a real outage takes. Add keys to see it live.
+
+`backend/.env` takes three values:
 
 | Key | Where it comes from |
 |---|---|

@@ -21,7 +21,14 @@ from protocol.terms import (
     min_sellable_price_for_terms,
 )
 
-_client = OpenAI(api_key=OPENAI_API_KEY, timeout=OPENAI_TIMEOUT_SECONDS, max_retries=1)
+# The SDK refuses to construct without a key, so stand one in when none is
+# configured. It is never used: `call_with_retry` short-circuits to the
+# rule-based path before any request is made when HAS_OPENAI is false.
+_client = OpenAI(
+    api_key=OPENAI_API_KEY or "no-key-configured",
+    timeout=OPENAI_TIMEOUT_SECONDS,
+    max_retries=1,
+)
 
 MAX_LINE_ITEMS = 3
 

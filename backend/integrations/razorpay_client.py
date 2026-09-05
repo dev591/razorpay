@@ -10,7 +10,7 @@ from razorpay.errors import (
 )
 from requests.exceptions import RequestException
 
-from config import RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+from config import HAS_RAZORPAY, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
 
 _client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -32,6 +32,26 @@ REQUEST_TIMEOUT_SECONDS = 30.0
 # failures (REQUEST_TIMEOUT_SECONDS expiring, connection reset, DNS, ...) via
 # RequestException, plus the SDK's own non-2xx-response error types.
 RazorpayCallError = (RequestException, BadRequestError, GatewayError, ServerError)
+
+
+class NoCredentials(RequestException):
+    """No Razorpay keys are configured in this process.
+
+    Subclasses RequestException so it is caught by `RazorpayCallError` like any
+    other unreachable-provider failure: callers already hold the signed mandate
+    intact and report a provider error, which is exactly the right outcome. The
+    message says the real reason rather than letting an authentication failure
+    surface as a puzzling 401.
+    """
+
+
+def _require_credentials() -> None:
+    if not HAS_RAZORPAY:
+        raise NoCredentials(
+            "no Razorpay keys configured — set RAZORPAY_KEY_ID and "
+            "RAZORPAY_KEY_SECRET in backend/.env to settle for real. The "
+            "negotiation, the gates and the audit trail all work without them."
+        )
 
 
 def _with_retry(fn, attempts: int = 3, base_delay: float = 0.5):
@@ -61,6 +81,7 @@ def _with_retry(fn, attempts: int = 3, base_delay: float = 0.5):
 def create_order(amount_rupees: float, receipt: str) -> dict:
     """Creates a real Razorpay test-mode order. Amount is in rupees; Razorpay
     expects paise (integer)."""
+    _require_credentials()
     return _with_retry(
         lambda: _client.order.create(
             {
