@@ -423,6 +423,7 @@ export function useNegotiation() {
       qty_max: number;
       ship_within_days?: number;
       requested_lines?: RequestedLine[];
+      buyer_business_id?: string;
       preferred_payment_terms?: PaymentTerms;
       weight_price?: number;
       weight_speed?: number;

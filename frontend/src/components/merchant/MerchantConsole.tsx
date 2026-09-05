@@ -30,6 +30,21 @@ function stage(s: Session): "accept" | "awaiting_payment" | "paid" | "done" | "o
   return "other";
 }
 
+/** The same session, read from the buying side. */
+function buyerStage(s: Session): "waiting" | "pay" | "paid" | "other" {
+  if (s.pending_seller_confirmation) return "waiting";
+  if (s.status === "awaiting_payment") return "pay";
+  if (s.status === "settled") return "paid";
+  return "other";
+}
+
+const BUYER_STAGE_COPY: Record<string, { label: string; tone: string }> = {
+  waiting: { label: "Waiting on the seller to accept", tone: "bg-lock/15 text-lock" },
+  pay: { label: "Accepted — pay now", tone: "bg-counter/15 text-counter" },
+  paid: { label: "Order confirmed", tone: "bg-settle/15 text-settle" },
+  other: { label: "Closed", tone: "bg-mist text-muted" },
+};
+
 const STAGE_COPY: Record<string, { label: string; tone: string }> = {
   accept: { label: "Needs your approval", tone: "bg-counter/15 text-counter" },
   awaiting_payment: { label: "Waiting on buyer payment", tone: "bg-lock/15 text-lock" },
@@ -42,6 +57,8 @@ export default function MerchantConsole() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [me, setMe] = useState<string | null>(null);
   const [orders, setOrders] = useState<Session[] | null>(null);
+  // Deals where this vendor is the *buyer* — restocks it started on /try.
+  const [purchases, setPurchases] = useState<Session[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -68,9 +85,10 @@ export default function MerchantConsole() {
     try {
       const res = await getBusinessOrders(id);
       // Newest first — a merchant cares about what just landed.
-      setOrders(
-        [...res.as_seller].sort((a, b) => (b.created_at ?? 0) - (a.created_at ?? 0))
-      );
+      const byRecency = (a: Session, b: Session) =>
+        (b.created_at ?? 0) - (a.created_at ?? 0);
+      setOrders([...res.as_seller].sort(byRecency));
+      setPurchases([...res.as_buyer].sort(byRecency));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -88,6 +106,7 @@ export default function MerchantConsole() {
 
   function signIn(id: string) {
     setOrders(null);
+    setPurchases(null);
     setShowAllOrders(false);
     setMe(id);
     try {
@@ -100,6 +119,7 @@ export default function MerchantConsole() {
   function signOut() {
     setMe(null);
     setOrders(null);
+    setPurchases(null);
     try {
       localStorage.removeItem(IDENTITY_KEY);
     } catch {
@@ -256,9 +276,80 @@ export default function MerchantConsole() {
 
       {orders === null && <p className="mt-8 text-[13.5px] text-muted">Loading orders…</p>}
 
+      {purchases && purchases.length > 0 && (
+        <section className="mt-8">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            Buying — {purchases.length} restock
+            {purchases.length === 1 ? "" : "s"} you started
+          </p>
+          <div className="mt-3 space-y-4">
+            {purchases.slice(0, ORDER_LIMIT).map((s) => {
+              const st = buyerStage(s);
+              const copy = BUYER_STAGE_COPY[st];
+              const cart = s.final_cart;
+              const amount = s.payment_mandate?.amount ?? cart?.total_price ?? null;
+              const seller = s.seller_business_id;
+              return (
+                <div key={s.id} className="rounded-2xl border border-line bg-mist/40 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ${copy.tone}`}
+                    >
+                      {copy.label}
+                    </span>
+                    <span className="font-mono text-[10.5px] text-muted">{s.id}</span>
+                  </div>
+                  <p className="mt-3 text-[14.5px] text-ink">{s.intent.goal}</p>
+                  {seller && (
+                    <p className="mt-1 text-[12.5px] text-slate-ink">
+                      from <span className="font-medium text-ink">{seller}</span>
+                    </p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line/70 pt-3">
+                    <span className="font-display text-[19px] font-semibold text-ink">
+                      {rupees(amount)}
+                    </span>
+                    {st === "pay" && (
+                      <a
+                        href={checkoutUrl(s.id)}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="rounded-full bg-rzp-500 px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-rzp-600"
+                      >
+                        Pay now
+                      </a>
+                    )}
+                    {st === "waiting" && (
+                      <span className="text-[12.5px] text-muted">
+                        Nothing is charged until they confirm they can ship it.
+                      </span>
+                    )}
+                    {st === "paid" && (
+                      <span className="text-[12.5px] font-medium text-settle">
+                        Paid · {s.razorpay_payment_id ?? "settled"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {purchases.length > ORDER_LIMIT && (
+            <p className="mt-2 text-[12px] text-muted">
+              +{purchases.length - ORDER_LIMIT} older restock
+              {purchases.length - ORDER_LIMIT === 1 ? "" : "s"}
+            </p>
+          )}
+        </section>
+      )}
+
       {orders?.length === 0 && (
         <div className="mt-8 rounded-2xl border border-dashed border-line p-8 text-center">
-          <p className="text-[14px] font-medium text-ink">Nothing won yet</p>
+          <p className="text-[14px] font-medium text-ink">
+            {purchases && purchases.length > 0
+              ? "Nothing sold yet"
+              : "Nothing won yet"}
+          </p>
           <p className="mt-1.5 text-[13px] text-slate-ink">
             Run a negotiation on Try it. If this vendor wins, the order lands here
             for you to approve.
@@ -269,9 +360,10 @@ export default function MerchantConsole() {
       {orders && orders.length > 0 && (
         <div className="mt-8 flex items-baseline justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            Selling ·{" "}
             {showAllOrders
-              ? `All ${orders.length} orders`
-              : `Latest ${Math.min(ORDER_LIMIT, orders.length)} of ${orders.length}`}
+              ? `all ${orders.length}`
+              : `latest ${Math.min(ORDER_LIMIT, orders.length)} of ${orders.length}`}
           </p>
           {orders.length > ORDER_LIMIT && (
             <button

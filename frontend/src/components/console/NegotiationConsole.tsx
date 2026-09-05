@@ -13,6 +13,8 @@ import NumberField from "@/components/ui/NumberField";
 import OutageToggle from "@/components/console/OutageToggle";
 import {
   getSystemStats,
+  listBusinesses,
+  type Business,
   type PaymentTerms,
   type RequestedLine,
   type SystemStats,
@@ -75,6 +77,15 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
   const [form, setForm] = useState<Preset>(PRESETS[0]);
   const [priority, setPriority] = useState<(typeof PRIORITIES)[number]>(PRIORITIES[0]);
   const [stats, setStats] = useState<SystemStats | null>(null);
+  // Who is doing the buying. Default is the standalone buyer agent; picking a
+  // registered vendor makes this a restock — that vendor is excluded from the
+  // seller side, and the deal shows up on its own merchant page as a purchase.
+  const [buyerId, setBuyerId] = useState<string>("");
+  const [vendors, setVendors] = useState<Business[]>([]);
+
+  useEffect(() => {
+    listBusinesses().then(setVendors).catch(() => {});
+  }, []);
 
   const setLine = (i: number, patch: Partial<RequestedLine>) =>
     setForm((f) => ({
@@ -185,6 +196,30 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                    Buying as
+                  </label>
+                  <select
+                    value={buyerId}
+                    disabled={busy}
+                    onChange={(e) => setBuyerId(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition focus:border-rzp-400 focus:ring-4 focus:ring-rzp-100 disabled:bg-mist"
+                  >
+                    <option value="">A standalone buyer agent</option>
+                    {vendors.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} — restocking
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
+                    {buyerId
+                      ? "A restock: this vendor cannot bid against itself, and the order shows on its own merchant page as a purchase."
+                      : "Pick a vendor to run this as a merchant-to-merchant restock."}
+                  </p>
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                     Why you're buying
@@ -354,6 +389,7 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
                     draft({
                       ...form,
                       requested_lines: basket,
+                      buyer_business_id: buyerId || undefined,
                       weight_price: priority.weight_price,
                       weight_speed: priority.weight_speed,
                       weight_terms: priority.weight_terms,
