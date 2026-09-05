@@ -55,10 +55,16 @@ class _ModelOutage:
     The point of the degraded path is that it is real, so this breaks the
     *upstream* rather than short-circuiting to the fallback: `call_with_retry`
     raises the same `APIConnectionError` the SDK raises when OpenAI cannot be
-    reached, and everything downstream — the retry budget, the jittered
-    backoff, the rule-based quoting, the `degraded` flag on the cart and in the
-    audit trail — runs exactly as it would in a real outage. A switch that
-    jumped straight to the fallback would demonstrate nothing.
+    reached, and everything downstream — the failure classification, the
+    rule-based quoting, the `degraded` flag on the cart and in the audit trail
+    — runs exactly as it would in a real outage. A switch that jumped straight
+    to the fallback would demonstrate nothing.
+
+    It does skip the retry ladder, deliberately. Retrying a switch we set
+    ourselves recovers nothing and only burns backoff; a genuine
+    `APIConnectionError` from the SDK still gets the full three attempts. So
+    this models "the provider is down and retries are already spent", which is
+    the state the fallback exists for.
 
     Expires on its own. A demo control that can be left on by accident is a
     control that eventually makes a working system look broken.
@@ -113,16 +119,19 @@ def call_with_retry(fn: Callable[[], T], on_retry: Callable[[int, Exception], No
     `except openai.OpenAIError` handler upstream keeps working unchanged — this
     only changes how many times we try before giving up.
     """
-    # No key configured is not a transient failure, so there is nothing to
-    # retry — go straight to the rule-based path the caller already has.
-    if not HAS_OPENAI:
+    # Neither of these is a transient failure, so there is nothing to retry:
+    # no key is a configuration fact, and the chaos switch is a state we set
+    # ourselves. Retrying either just burns the jittered backoff ladder before
+    # reaching the fallback that was always going to handle it — and with two
+    # calls a round across every vendor, that sleeping was enough to push a
+    # deliberately-degraded run past the frontend's request timeout, which then
+    # reported it as "the backend may be down".
+    if not HAS_OPENAI or model_outage.active():
         raise openai.APIConnectionError(request=None)  # type: ignore[arg-type]
 
     last: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            if model_outage.active():
-                raise openai.APIConnectionError(request=None)  # type: ignore[arg-type]
             return fn()
         except TERMINAL:
             raise

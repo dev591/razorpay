@@ -648,9 +648,16 @@ degraded" is a positive assertion rather than an absence.
 the console) makes the model genuinely unreachable.
 
 **It breaks the upstream, not the outcome.** `call_with_retry` raises the same
-`APIConnectionError` the SDK raises, so the retry budget, backoff, rule-based
+`APIConnectionError` the SDK raises, so the failure classification, rule-based
 quoting and degraded labelling all execute exactly as in a real outage. A switch
 that jumped straight to the fallback would demonstrate nothing.
+
+It skips the retry ladder on purpose: retrying a switch we set ourselves
+recovers nothing and only burns backoff — enough of it, across two calls a round
+per vendor, to push a degraded run past the frontend's request timeout. A
+genuine SDK failure still gets all three attempts, so the switch models "the
+provider is down and retries are spent", which is the state the fallback is
+for.
 
 Self-expires after 300s — a demo control that can be left on by accident is a
 control that eventually makes a working system look broken.

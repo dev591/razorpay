@@ -59,9 +59,11 @@ export default function DegradedRules() {
         </ul>
         <p className="mt-3 border-t border-line/70 pt-3 text-[13px] leading-relaxed text-slate-ink">
           The switch breaks the <strong className="font-semibold text-ink">upstream</strong>,
-          not the outcome: the retry budget, the backoff, the rule-based quoting and the
+          not the outcome: the failure classification, the rule-based quoting and the
           labelling all execute exactly as they would in a real outage. One that jumped
-          straight to the fallback would demonstrate nothing.
+          straight to the fallback would demonstrate nothing. It does skip the retry
+          ladder on purpose — retrying a switch we set ourselves recovers nothing and only
+          burns backoff, while a genuine SDK failure still gets all three attempts.
         </p>
       </div>
 
