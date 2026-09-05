@@ -6,6 +6,11 @@ gated and provable.
 Built by **Dev Chalana** for the AI Growth & Agentic Commerce track.
 Repository: <https://github.com/dev591/razorpay>
 
+**Runs with no credentials.** Both key sets are optional: without an OpenAI key
+the agents quote from the rule-based path and every cart is labelled degraded,
+and the gates, floors, shortlist, hash lock and audit chain all work unchanged.
+`cp .env.example .env` and start it.
+
 **Scale of the build:** ~6,100 lines of Python across 5 layers, ~6,600 lines of
 TypeScript/React across 5 routes, 30 HTTP endpoints, 5 purpose-built data
 structures, 765 real negotiation sessions in the corpus at time of writing.
@@ -499,6 +504,13 @@ The near-floor test still runs, recorded as the *reason*, distinguishing
 "confirm you can ship this" from "this one is thin, look closely"
 (`NEAR_FLOOR_BUFFER_PCT` = 3.0pp).
 
+**The seller can also decline** — a gate that can only say yes is not a gate,
+and the reason a merchant is asked at all is that its catalog may be stale.
+`seller.rejected` goes into the chain, nothing is charged, and every converged
+cart stays settleable so the buyer takes the runner-up without a fresh
+negotiation. The order stays visible to the merchant as declined rather than
+vanishing from its queue.
+
 **Restart durability (bug found and fixed):** `confirm_seller` originally read
 only an in-memory dict, so **every deal parked before a process restart was
 permanently unconfirmable** — 274 sessions were stuck. `_rehydrate_pending()`
@@ -890,7 +902,13 @@ Route attribution is simulated.
 - **Restart durability** — a previously stuck parked deal confirmed after a
   restart, producing a real order.
 - **Clean-clone install** — fresh venv, `pip install -r requirements.txt`,
-  `uvicorn main:app` boots and serves.
+  `uvicorn main:app` boots and serves. Also verified with **no credentials at
+  all**: intent minted, gate held, negotiation completed on the rule-based
+  path, margin 14% against an 8% floor, 45-entry chain valid.
+- **Full payment lifecycle** — a real Razorpay test-mode payment captured
+  (`pay_TYGuNpzPXHh6Eu`, ₹23,672.75), then dispatch acknowledged by the seller,
+  `seller.dispatch_acknowledged` appended, chain still valid. Buyer and seller
+  views both reflect it.
 - **Full UI pass** — vendor creation, multi-item negotiation, human override,
   merchant acceptance, tamper, degraded run, all five routes: **zero console
   errors, zero backend tracebacks, zero 5xx**.
@@ -943,18 +961,22 @@ These are included because they demonstrate where the real difficulty lay.
 
 Stated plainly, because a reviewer will find them anyway:
 
-1. **The revenue-growth half is under-told.** The brief leads with *"grow the
-   merchant's revenue"*; the build argues buyer-side safety. The upsell engine
-   and retained-margin figures exist but are never framed as *money made*. This
-   is a framing gap, not a build gap.
-2. **No public deployment.** A judge must supply an OpenAI key *and* Razorpay
-   test keys. This is the largest practical risk to evaluation.
-3. **The `settled → confirm dispatch` transition is guard-tested but never
-   exercised live** — no session in the corpus has been paid through Razorpay
-   checkout.
-4. **Two of three in-memory caches remain restart-fragile** (§16.3).
-5. **Economics counters reset on restart** (§15).
-6. **A clean clone starts at zero sessions**, so live counters read 0 until a
+1. **The revenue figures come from test-mode traffic.** Every number in the
+   growth argument is measured on this instance rather than estimated, but it
+   is measured against seeded vendors and my own runs. Attach rate and
+   incremental GMV only become real claims under live merchant traffic, and are
+   not presented as forecasts.
+2. **No public deployment.** The console holds a 40–70s SSE stream that
+   serverless platforms buffer or cut, so a public URL needs a persistent
+   container (`backend/DEPLOY.md` has the steps). Mitigated rather than solved:
+   **both key sets are optional**, so a clean clone runs the whole system with
+   no credentials at all — every cart labelled degraded — and adding keys shows
+   it live.
+3. **Two of three in-memory caches remain restart-fragile** (§16.3).
+4. **Economics counters reset on restart** (§15) — sessions persist, token
+   counters do not, so a restarted instance shows an empty cost chart until the
+   next negotiation.
+5. **A clean clone starts at zero sessions**, so live counters read 0 until a
    negotiation runs — deliberate, since every number is measured rather than
    seeded, but it does make first load look emptier than a populated instance.
 
@@ -970,7 +992,7 @@ Stated plainly, because a reviewer will find them anyway:
 | Transactable by an AI buyer end to end | Intent → shortlist → negotiate → seller accept → Razorpay order → payment → dispatch |
 | Agent-readable catalog *(named direction)* | Agent card, trie + inverted index, cross-vendor search |
 | Upsell & cross-sell agent *(named direction)* | `upsell_engine.py`, rule-based |
-| **Gated** | Two blocking human gates |
+| **Gated** | Two blocking human gates; the seller can accept or decline |
 | **Bounded** | Margin floor, basket, budget, MSMED cap — all arithmetic |
 | **Explainable** | Hash-chained ledger, independently verifiable |
 | **Audit trail shown** | `/audit`, live trail, README verifier |
