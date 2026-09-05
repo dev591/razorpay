@@ -74,6 +74,24 @@ export default function MerchantConsole() {
 
   useEffect(() => {
     listBusinesses().then(setBusinesses).catch(() => {});
+
+    // `?as=<business_id>` signs straight in. The console links here that way
+    // once a deal is done, so following a negotiation to its other side is one
+    // click rather than "now go and find the right vendor in a list".
+    const asParam = new URLSearchParams(window.location.search).get("as");
+    if (asParam) {
+      setMe(asParam);
+      try {
+        localStorage.setItem(IDENTITY_KEY, asParam);
+      } catch {
+        /* identity just won't persist */
+      }
+      // Drop the param so a refresh doesn't keep forcing an identity the user
+      // may since have switched away from.
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
     try {
       setMe(localStorage.getItem(IDENTITY_KEY));
     } catch {

@@ -11,6 +11,7 @@ import { useNegotiation } from "@/components/console/useNegotiation";
 import OfferBoard from "@/components/console/OfferBoard";
 import NumberField from "@/components/ui/NumberField";
 import OutageToggle from "@/components/console/OutageToggle";
+import NextStep from "@/components/console/NextStep";
 import {
   getSystemStats,
   listBusinesses,
@@ -471,15 +472,21 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
               )}
 
             {state.session && (state.lockedHash || state.phase === "gated") && (
-              <SettlementPanel
-                sessionId={state.session.id}
-                amount={amount}
-                cartHash={state.lockedHash}
-                orderId={state.orderId}
-                gated={state.phase === "gated"}
-                providerError={state.phase === "provider_error"}
-                onConfirmed={() => {}}
-              />
+              <div className="space-y-3">
+                <NextStep
+                  sessionId={state.session.id}
+                  gated={state.phase === "gated"}
+                />
+                <SettlementPanel
+                  sessionId={state.session.id}
+                  amount={amount}
+                  cartHash={state.lockedHash}
+                  orderId={state.orderId}
+                  gated={state.phase === "gated"}
+                  providerError={state.phase === "provider_error"}
+                  onConfirmed={() => {}}
+                />
+              </div>
             )}
 
             {state.error && (

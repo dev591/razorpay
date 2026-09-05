@@ -47,6 +47,16 @@ those numbers are measured, never seeded.
 
 ---
 
+### Starting fresh
+
+Every counter is measured, never seeded, so a clean clone begins at zero
+sessions. To put an instance that has been demoed back to that state — keeping
+the registered vendors — stop the server and run:
+
+```bash
+cd backend && .venv/bin/python reset_demo.py
+```
+
 ## The 90-second tour
 
 1. **`/try`** — name what you need. Each preset opens with a multi-line basket
@@ -57,9 +67,11 @@ those numbers are measured, never seeded.
    spend shown — then those negotiate live, in parallel.
 3. **Pick a winner.** The scorer recommends; you can override, and the override
    is written to the ledger next to the recommendation it replaced.
-4. **Go to `/merchant`**, sign in as the winning vendor (no password) and
-   **accept the order**. Pay, and the merchant confirms dispatch. Both sides of
-   the same deal, both recorded.
+4. **Follow the links the console gives you.** Once the agents agree it offers
+   *"Accept as ‹winner›"* and, if you bought as a vendor, *"Open as ‹buyer›"* —
+   each signs you straight into `/merchant` as that party. Accept as the seller,
+   pay as the buyer, then confirm dispatch as the seller. Both sides of the same
+   deal, both recorded.
 5. **Press "Tamper with the cart."** One rupee changes, the signature stops
    matching, settlement is refused.
 6. **Press "Break the model."** Run another negotiation with the model genuinely
