@@ -1,4 +1,5 @@
 import ArchitectureDiagram from "@/components/dev/ArchitectureDiagram";
+import PipelineDiagram from "@/components/dev/PipelineDiagram";
 import EconomicsCharts from "@/components/dev/EconomicsCharts";
 import LifecycleDiagram from "@/components/dev/LifecycleDiagram";
 import ScalabilityTable from "@/components/dev/ScalabilityTable";
@@ -78,6 +79,15 @@ export default function DevelopersPage() {
             projection rather than a measurement, it says so.
           </p>
         </header>
+
+        <Section
+          id="pipeline"
+          eyebrow="The whole system in one picture"
+          title="Eight stages, two gates, one that costs money"
+          lede="Where a model is called, where a human has to say yes, and which structure does the work at each step."
+        >
+          <PipelineDiagram />
+        </Section>
 
         <Section
           id="lifecycle"
