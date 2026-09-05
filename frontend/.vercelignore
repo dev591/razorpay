@@ -1,0 +1,4 @@
+# The backend deploys separately to a persistent container — it holds a 40-70s
+# SSE stream and keeps state between requests, so it cannot run as a Vercel
+# function. See backend/DEPLOY.md.
+../backend

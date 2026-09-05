@@ -28,10 +28,26 @@ The frontend is an ordinary Next.js app and goes anywhere.
 
 ## Frontend — Vercel
 
-1. Import the same repository, root directory `frontend`.
-2. Set `NEXT_PUBLIC_BACKEND_URL` to the backend's public URL, no trailing slash.
-3. Deploy, then put that Vercel URL into the backend's `CORS_ORIGINS` and
-   redeploy the backend.
+1. Import the same repository and set **Root Directory** to `frontend`. That
+   setting lives in the Vercel dashboard, not in `vercel.json`, and without it
+   the build runs at the repo root and finds no Next app.
+2. `frontend/vercel.json` supplies the rest — framework, build command, and
+   `bom1` (Mumbai) as the region, since the buyers are Indian and the backend
+   will likely sit there too.
+3. Set `NEXT_PUBLIC_BACKEND_URL` to the backend's public URL, **no trailing
+   slash**. It is read at build time, so changing it later needs a redeploy,
+   not just a restart.
+4. Deploy, then put that Vercel URL into the backend's `CORS_ORIGINS` and
+   redeploy the backend. Until you do, every request from the deployed
+   frontend is blocked by CORS and the console will look dead.
+
+### Order matters
+
+The two deployments reference each other, so do it in this order:
+
+1. Deploy the backend first and copy its URL.
+2. Deploy the frontend with `NEXT_PUBLIC_BACKEND_URL` set to that URL.
+3. Set `CORS_ORIGINS` on the backend to the frontend's URL and redeploy it.
 
 ---
 
