@@ -82,6 +82,9 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
   // registered vendor makes this a restock — that vendor is excluded from the
   // seller side, and the deal shows up on its own merchant page as a purchase.
   const [buyerId, setBuyerId] = useState<string>("");
+  // Bumped when the human takes a different offer, so anything reading the
+  // session back from the server re-reads it — the winner has changed.
+  const [selectionNonce, setSelectionNonce] = useState(0);
   const [vendors, setVendors] = useState<Business[]>([]);
 
   useEffect(() => {
@@ -467,7 +470,10 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
                 state.phase === "provider_error") && (
                 <OfferBoard
                   sessionId={state.session.id}
-                  onSelected={() => getSystemStats().then(setStats).catch(() => {})}
+                  onSelected={() => {
+                    setSelectionNonce((n) => n + 1);
+                    getSystemStats().then(setStats).catch(() => {});
+                  }}
                 />
               )}
 
@@ -476,6 +482,7 @@ export default function NegotiationConsole({ embedded = false }: { embedded?: bo
                 <NextStep
                   sessionId={state.session.id}
                   gated={state.phase === "gated"}
+                  refreshKey={selectionNonce}
                 />
                 <SettlementPanel
                   sessionId={state.session.id}

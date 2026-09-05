@@ -17,9 +17,13 @@ import { getSession, listBusinesses, type Business } from "@/lib/api";
 export default function NextStep({
   sessionId,
   gated,
+  refreshKey = 0,
 }: {
   sessionId: string;
   gated: boolean;
+  /** Changes when the human takes a different offer, so the card re-reads who
+   *  actually won rather than pointing at the vendor the scorer recommended. */
+  refreshKey?: number;
 }) {
   const [buyerId, setBuyerId] = useState<string | null>(null);
   const [sellerId, setSellerId] = useState<string | null>(null);
@@ -43,7 +47,7 @@ export default function NextStep({
     return () => {
       cancelled = true;
     };
-  }, [sessionId, gated]);
+  }, [sessionId, gated, refreshKey]);
 
   const nameOf = (id: string) => vendors.find((v) => v.id === id)?.name ?? id;
 

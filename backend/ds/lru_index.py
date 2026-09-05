@@ -51,6 +51,10 @@ class SessionStore:
         # Every id the store knows about, hot or evicted. Lets `count()` and
         # `iter_ids()` answer without hitting the filesystem.
         self._known: set[str] = set()
+        # What each session is currently filed under, so a change of party can
+        # be un-filed from the old one. Without this the indices only ever
+        # grow, and a session whose seller changed stays visible to both.
+        self._filed_under: dict[str, tuple[str | None, str | None]] = {}
 
     # ── paths ─────────────────────────────────────────────────────────────
 
@@ -102,17 +106,34 @@ class SessionStore:
         return session
 
     def _reindex(self, session: dict[str, Any]) -> None:
-        """Files a session under whichever businesses it involves. Called on
-        every `put`, because `seller_business_id` is only assigned partway
-        through a session's life (once a winner is picked) — the index has to
-        pick that up on the update, not just at creation."""
+        """Files a session under whichever businesses it involves.
+
+        Called on every `put`, because `seller_business_id` is only assigned
+        partway through a session's life (once a winner is picked) — the index
+        has to pick that up on the update, not just at creation.
+
+        It also has to *un*-file: a buyer can override the recommendation and
+        settle with a different vendor, and an add-only index left the order
+        sitting in the losing vendor's queue forever, asking it to accept a
+        deal it had not won.
+        """
         session_id = session["id"]
         buyer = session.get("buyer_business_id")
         seller = session.get("seller_business_id")
+
+        previous_buyer, previous_seller = self._filed_under.get(
+            session_id, (None, None)
+        )
+        if previous_buyer and previous_buyer != buyer:
+            self._by_buyer.get(previous_buyer, set()).discard(session_id)
+        if previous_seller and previous_seller != seller:
+            self._by_seller.get(previous_seller, set()).discard(session_id)
+
         if buyer:
             self._by_buyer.setdefault(buyer, set()).add(session_id)
         if seller:
             self._by_seller.setdefault(seller, set()).add(session_id)
+        self._filed_under[session_id] = (buyer, seller)
 
     def _evict(self) -> None:
         """Trim the hot tier back to `max_hot`, oldest-touched first. The
