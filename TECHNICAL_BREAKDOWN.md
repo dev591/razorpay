@@ -395,8 +395,11 @@ it fails** — a shortlist that skipped a cheaper vendor is exactly the fact an
 audit trail owes the buyer.
 
 **List price is the wrong key**: it ranks who *starts* cheap, not who *ends*
-cheap. A vendor listing ₹950 with an 8% floor beats one listing ₹880 with an
-18% floor.
+cheap. Real inversion from the seeded registry — QuickSupply lists a Wireless
+Mouse at **₹880** and Meridian Supply at **₹885**, so the sticker says
+QuickSupply is cheaper; but on cost and floor QuickSupply bottoms out at
+**₹717.39** while Meridian can reach **₹648.35**. Ranking on list price picks
+the wrong vendor.
 
 With a named basket the bound tightens to that basket's own floor total, and a
 vendor missing any requested line is excluded as `cannot_fill_basket` — a
@@ -404,7 +407,8 @@ stronger statement than merely being expensive.
 
 **2. It reports what it saved.** `economics.cost_per_vendor()` derives real
 per-vendor cost from metered history, so the console shows e.g. *"Shortlisted 3
-of 7 · saved ~36 model calls · ₹0.63 (measured)"*.
+of 7 · saved ~48 model calls · ₹0.86 (measured)"*. Before any session has been
+metered it falls back to a stated estimate and labels itself `(estimated)`.
 
 | Constant | Value | Note |
 |---|---|---|
@@ -651,9 +655,11 @@ that jumped straight to the fallback would demonstrate nothing.
 Self-expires after 300s — a demo control that can be left on by accident is a
 control that eventually makes a working system look broken.
 
-**Verified result with the model fully dead:** 5 vendors degraded at round 1,
-winner selected, **real Razorpay order created**, margin 14.99% against a 9%
-floor, chain valid, every cart flagged.
+**Verified result with the model fully dead** (session `63ea5a7c0e5e`): the
+3 shortlisted vendors all degraded at round 1, a winner was still selected, a
+**real Razorpay order** was created (`order_TY2FVTMGXWtNp8`), margin landed at
+**14.99% against the winning vendor's 9% floor**, the chain stayed valid and
+every cart was flagged.
 
 ### 10.4 Failure-mode matrix
 
