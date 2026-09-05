@@ -5,6 +5,7 @@ import {
   acknowledgeDispatch,
   checkoutUrl,
   confirmSeller,
+  rejectAsSeller,
   getBusinessOrders,
   listBusinesses,
   type Business,
@@ -23,16 +24,22 @@ const CATALOG_PREVIEW = 3;
 const ORDER_LIMIT = 3;
 
 /** Where an order sits from the seller's point of view. */
-function stage(s: Session): "accept" | "awaiting_payment" | "paid" | "done" | "other" {
+function stage(
+  s: Session
+): "accept" | "awaiting_payment" | "paid" | "done" | "declined" | "other" {
   if (s.pending_seller_confirmation) return "accept";
+  if (s.status === "rejected_by_seller") return "declined";
   if (s.status === "awaiting_payment") return "awaiting_payment";
   if (s.status === "settled") return s.seller_acknowledged ? "done" : "paid";
   return "other";
 }
 
 /** The same session, read from the buying side. */
-function buyerStage(s: Session): "waiting" | "pay" | "paid" | "other" {
+function buyerStage(
+  s: Session
+): "waiting" | "pay" | "paid" | "declined" | "other" {
   if (s.pending_seller_confirmation) return "waiting";
+  if (s.status === "rejected_by_seller") return "declined";
   if (s.status === "awaiting_payment") return "pay";
   if (s.status === "settled") return "paid";
   return "other";
@@ -42,6 +49,10 @@ const BUYER_STAGE_COPY: Record<string, { label: string; tone: string }> = {
   waiting: { label: "Waiting on the seller to accept", tone: "bg-lock/15 text-lock" },
   pay: { label: "Accepted — pay now", tone: "bg-counter/15 text-counter" },
   paid: { label: "Order confirmed", tone: "bg-settle/15 text-settle" },
+  declined: {
+    label: "Seller couldn't fulfil — pick another",
+    tone: "bg-[color:var(--color-walk)]/12 text-[color:var(--color-walk)]",
+  },
   other: { label: "Closed", tone: "bg-mist text-muted" },
 };
 
@@ -50,6 +61,10 @@ const STAGE_COPY: Record<string, { label: string; tone: string }> = {
   awaiting_payment: { label: "Waiting on buyer payment", tone: "bg-lock/15 text-lock" },
   paid: { label: "Paid — confirm dispatch", tone: "bg-settle/15 text-settle" },
   done: { label: "Dispatched", tone: "bg-mist text-muted" },
+  declined: {
+    label: "You declined this",
+    tone: "bg-[color:var(--color-walk)]/12 text-[color:var(--color-walk)]",
+  },
   other: { label: "Closed", tone: "bg-mist text-muted" },
 };
 
@@ -342,6 +357,12 @@ export default function MerchantConsole() {
                         Nothing is charged until they confirm they can ship it.
                       </span>
                     )}
+                    {st === "declined" && (
+                      <span className="text-[12.5px] text-muted">
+                        Nothing was charged. The other vendors&apos; offers are
+                        still settleable on Try it.
+                      </span>
+                    )}
                     {st === "paid" && (
                       <span className="text-[12.5px] font-medium text-settle">
                         Paid · {s.razorpay_payment_id ?? "settled"}
@@ -462,13 +483,32 @@ export default function MerchantConsole() {
                 </div>
 
                 {st === "accept" && (
-                  <button
-                    onClick={() => act(() => confirmSeller(s.id), s.id, me)}
-                    disabled={busy === s.id}
-                    className="rounded-full bg-ink px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-ink-600 disabled:opacity-50"
-                  >
-                    {busy === s.id ? "Accepting…" : "Accept this order"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Declining is the reason a merchant is asked at all: it
+                        may genuinely be out of stock, and "accept" alone gives
+                        it no way to say so. */}
+                    <button
+                      onClick={() => act(() => rejectAsSeller(s.id, me), s.id, me)}
+                      disabled={busy === s.id}
+                      className="rounded-full border border-line px-4 py-2.5 text-[13px] font-medium text-muted transition hover:border-[color:var(--color-walk)] hover:text-[color:var(--color-walk)] disabled:opacity-40"
+                    >
+                      Can&apos;t fulfil
+                    </button>
+                    <button
+                      onClick={() => act(() => confirmSeller(s.id), s.id, me)}
+                      disabled={busy === s.id}
+                      className="rounded-full bg-ink px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-ink-600 disabled:opacity-50"
+                    >
+                      {busy === s.id ? "Accepting…" : "Accept this order"}
+                    </button>
+                  </div>
+                )}
+
+                {st === "declined" && (
+                  <span className="text-[12.5px] text-muted">
+                    Recorded in the trail. The buyer can still take another
+                    vendor&apos;s offer.
+                  </span>
                 )}
 
                 {st === "awaiting_payment" && (

@@ -279,6 +279,24 @@ class AcknowledgeRequest(BaseModel):
     business_id: str
 
 
+class SellerRejectRequest(BaseModel):
+    business_id: str
+    reason: str = "declined by the seller"
+
+
+@router.post("/sessions/{session_id}/reject-seller")
+def reject_as_seller(session_id: str, req: SellerRejectRequest):
+    """The seller declining a deal it cannot fill — the other half of gate two.
+    Every converged cart is still held, so the buyer can settle the runner-up
+    without a fresh negotiation."""
+    try:
+        return session_manager.reject_as_seller(
+            session_id, req.business_id, reason=req.reason
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.post("/sessions/{session_id}/acknowledge")
 def acknowledge_dispatch(session_id: str, req: AcknowledgeRequest):
     """Seller confirms payment received and goods dispatched. Appended to the

@@ -1150,6 +1150,60 @@ def reject_intent(session_id: str, reason: str = "rejected by human") -> dict[st
     return session
 
 
+def reject_as_seller(
+    session_id: str, business_id: str, reason: str = "declined by the seller"
+) -> dict[str, Any]:
+    """The seller declining a deal it cannot fill.
+
+    The other half of gate two. A gate that can only say yes is not a gate —
+    and the reason a merchant is asked at all is that it might genuinely be out
+    of stock, which "accept" alone gives it no way to say.
+
+    The buyer is not left stranded: every converged cart is still held, so the
+    runner-up can be settled against the same signed intent without a fresh
+    negotiation. Recorded in the chain like every other refusal, rather than
+    the session simply going quiet.
+    """
+    session = get_session(session_id)
+    if session is None:
+        raise ValueError("session not found")
+    if session.get("seller_business_id") != business_id:
+        raise ValueError("this order belongs to a different vendor")
+    if not session.get("pending_seller_confirmation"):
+        raise ValueError(
+            f"session is not awaiting seller confirmation (status: {session.get('status')})"
+        )
+
+    with _lock:
+        _pending_confirmations.pop(session_id, None)
+
+    ledger = AuditLedger(session_id)
+    ledger.append(
+        "seller.rejected",
+        {
+            "business_id": business_id,
+            "reason": reason,
+            "cart_total": (session.get("final_cart") or {}).get("total_price"),
+        },
+    )
+
+    session["pending_seller_confirmation"] = False
+    session["status"] = "rejected_by_seller"
+    session["rejection_reason"] = reason
+    # `seller_business_id` deliberately stays put. Clearing it dropped the
+    # order out of this vendor's queue entirely, so a merchant that declined
+    # something saw it simply disappear — with no record of the decision it had
+    # just made. It stays visible as "you declined this" until the buyer takes
+    # another vendor's offer, at which point `select_offer` reassigns it.
+    _persist(session)
+    _emit(
+        session_id,
+        "gate.seller_rejected",
+        {"business_id": business_id, "reason": reason},
+    )
+    return session
+
+
 # ─── Choosing a different vendor ──────────────────────────────────────────
 
 

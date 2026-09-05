@@ -258,6 +258,19 @@ export function tamperSession(sessionId: string): Promise<TamperResult> {
   return postJSON<TamperResult>(`/sessions/${sessionId}/tamper`);
 }
 
+/** The seller declining a deal it cannot fill. Converged offers stay settleable,
+ *  so the buyer can take the runner-up without renegotiating. */
+export function rejectAsSeller(
+  sessionId: string,
+  businessId: string,
+  reason = "declined by the seller"
+): Promise<Session> {
+  return postJSON<Session>(`/sessions/${sessionId}/reject-seller`, {
+    business_id: businessId,
+    reason,
+  });
+}
+
 export function acknowledgeDispatch(
   sessionId: string,
   businessId: string
