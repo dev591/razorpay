@@ -12,6 +12,46 @@ Built by **Dev Chalana** for the **AI Growth & Agentic Commerce** track.
 
 ---
 
+## Why this is a growth project
+
+B2B procurement is slow because of friction: approvals, negotiation, and the
+risk of getting it wrong. Removing the human from the loop is where the volume
+is. But no enterprise will let an agent spend company money if it can
+hallucinate a price or breach a margin — so **safety is not a tax on that
+growth, it is the precondition for it.** A merchant only gets access to agentic
+demand once it is provably safe to sell to.
+
+Three mechanisms, each measured on this instance rather than asserted:
+
+**Payment terms become a priced growth lever.** The margin floor is enforced on
+*net realisable revenue* — what the seller actually banks after carrying the
+receivable — so extending net-15/30/45 to a cash-tight SMB buyer is priced
+automatically instead of quietly eaten. That unlocks buyers who could never
+clear an advance-only floor, without the merchant conceding real margin to
+reach them. Freight is a separate pass-through line, so reported margin is
+margin on goods rather than a rush charge in disguise.
+
+**An automated AOV lift on every settlement.** The upsell engine attaches a line
+only when the base cart already clears 20 points of margin headroom, the extra
+fits the buyer's remaining budget, and the SKU is not already in the cart.
+Because that rule is arithmetic and not a prompt, it cannot push a deal under
+the floor or break the budget that got the intent approved — and the same cart
+produces the same upsell every time, so a merchant can audit why it was offered.
+
+**Market scale that does not explode acquisition cost.** Negotiating with a
+vendor costs real model calls, so a naive broadcast makes each purchase cost
+*O(vendors)*. The shortlist gate cuts the field before anyone talks, using a
+provable lower bound on what each vendor could ever quote. Cost per purchase
+stays flat as the marketplace grows — and the console reports what it saved,
+measured from recorded token usage. Agent-mediated selling only scales for a
+merchant if the cost of quoting is knowable.
+
+One caveat stated plainly: these figures come from a test-mode corpus and this
+instance's own traffic. Attach rate and incremental GMV only become real claims
+under live merchant traffic, and are not presented as forecasts.
+
+---
+
 ## Run it
 
 Two processes. You need Python 3.11+ and Node 20+.
