@@ -1,4 +1,5 @@
 import ArchitectureDiagram from "@/components/dev/ArchitectureDiagram";
+import DegradedRules from "@/components/dev/DegradedRules";
 import PipelineDiagram from "@/components/dev/PipelineDiagram";
 import EconomicsCharts from "@/components/dev/EconomicsCharts";
 import LifecycleDiagram from "@/components/dev/LifecycleDiagram";
@@ -199,6 +200,15 @@ export default function DevelopersPage() {
               respect a limit is not a limit.
             </p>
           </div>
+        </Section>
+
+        <Section
+          id="degraded"
+          eyebrow="Failure recovery"
+          title="What it does when the model is gone"
+          lede="The fallback is not a canned response. It is the same numbers the prompt was given, applied directly — so an unreachable provider costs creativity, not the ability to quote."
+        >
+          <DegradedRules />
         </Section>
 
         <Section
